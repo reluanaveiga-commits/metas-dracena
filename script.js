@@ -19,11 +19,13 @@ function isFeriado(data) {
 
 // ================== FUNCIONÁRIAS POR CIDADE ==================
 const funcionariosPorCidade = {
-    "Dracena": ["Suelen", "Nicole"],
+   "Ikeda": ["Franciele", "Andressa", "Nicole"],
+    "Dracena": ["Suelen", "Nicolie", "Carmem"],
+    "Junqueirópolis": ["Giovana", "Stefany", "Mariana"],
+    "Tupi Paulista": ["Mariana", "Bruna", "Jheniffer"],
     "Panorama": ["Camila", "Jaqueline"],
-    "Paulicéia": ["Fernanda", "Patrícia"],
-    "Ikeda": ["Camila", "Rafaela"],
-    "Junqueirópolis": ["Giovana", "Stefany", "Mariana"]
+    "Paulicéia": ["Mariele", "Myllena"]
+            
 };
 
 // ================== FORMATAÇÃO ==================
@@ -519,25 +521,89 @@ function exportarPDF() {
 }
 // ================== EXPORTAÇÃO EXCEL ==================
 function exportarExcel() {
-    let tabela = document.querySelector("#dias table");
+    const tabela = document.querySelector("#dias table");
     if (!tabela) return alert("Tabela não encontrada!");
 
-    let dados = [];
-    let linhas = tabela.querySelectorAll("tr");
+    const nomeFunc = document.getElementById("filtro").value;
+    const nomeCidade = document.getElementById("cidade").value;
+    const mesAtual = meses[new Date().getMonth()];
+    const anoAtual = new Date().getFullYear();
 
-    linhas.forEach(linha => {
-        if (linha.style.display === "none") return;
-        let row = [];
-        linha.querySelectorAll("th, td").forEach(celula => {
-            row.push(celula.innerText);
-        });
-        dados.push(row);
+    const dados = [];
+
+    // Cabeçalho (igual ao PDF)
+    dados.push([
+        "Data", "Dia", "Meta Loja", "Meta Ind.",
+        "Realizado", "Boleto Méd.", "Itens",
+        "BP 33%", "BT 31%", "B1 25%",
+        "Fluxo 28%", "ID 115%", "Penet. 98%",
+        "Resg. 54%", "SKIN 2,1%"
+    ]);
+
+    const linhas = tabela.querySelectorAll("tr");
+
+    linhas.forEach(tr => {
+        if (tr.style.display === "none") return;
+
+        let linhaDados = [];
+
+        // TOTAL SEMANA
+        if (tr.classList.contains("linha-total-semanal")) {
+            linhaDados = [
+                "TOTAL", "SEMANA",
+                tr.querySelector(".valor-semanal-loja")?.innerText || "",
+                tr.querySelector(".valor-semanal-indiv")?.innerText || "",
+                "", "", "", "", "", "", "", "", "", "", ""
+            ];
+        }
+
+        // TOTAL MÊS
+        else if (tr.classList.contains("linha-total-mensal")) {
+            linhaDados = [
+                "TOTAL", "MÊS",
+                document.getElementById("total-mes-loja")?.innerText || "",
+                document.getElementById("total-mes-individual")?.innerText || "",
+                "", "", "", "", "", "", "", "", "", "", ""
+            ];
+        }
+
+        // LINHAS NORMAIS
+        else if (!tr.querySelector("th")) {
+            const celulas = tr.querySelectorAll("th, td");
+
+            linhaDados = [
+                celulas[0]?.innerText || "", // Data
+                celulas[1]?.innerText || "", // Dia
+                celulas[5]?.innerText || "", // Meta Loja (invertido)
+                celulas[4]?.innerText || "", // Meta Ind (invertido)
+                celulas[2]?.innerText || "", // Realizado
+                celulas[3]?.innerText || "", // Boleto Méd.
+                celulas[6]?.innerText || "", // Itens
+                celulas[7]?.innerText || "",
+                celulas[8]?.innerText || "",
+                celulas[9]?.innerText || "",
+                celulas[10]?.innerText || "",
+                celulas[11]?.innerText || "",
+                celulas[12]?.innerText || "",
+                celulas[13]?.innerText || "",
+                celulas[14]?.innerText || ""
+            ];
+        } else {
+            return;
+        }
+
+        dados.push(linhaDados);
     });
 
-    let ws = XLSX.utils.aoa_to_sheet(dados);
-    let wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+
     XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
-    XLSX.writeFile(wb, "relatorio_metas.xlsx");
+
+    XLSX.writeFile(
+        wb,
+        `Metas_${nomeCidade}_${nomeFunc}.xlsx`
+    );
 }
 // ========= Senha =======
 // ======= USUÁRIOS =======
