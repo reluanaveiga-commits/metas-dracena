@@ -23,24 +23,35 @@ body {
     color: var(--texto);
 }
 
-/* ================== HEADER ================== */
+/* ================== HEADER (MENOR E MAIS MODERNO) ================== */
 .topo {
     background: linear-gradient(135deg, var(--verde), var(--verde-escuro));
     color: white;
-    padding: 18px 25px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    padding: 8px 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .brand {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
 }
 
 .logo {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+}
+
+.brand h1 {
+    font-size: 16px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.brand span {
+    font-size: 11px;
+    opacity: 0.85;
 }
 
 /* ================== CONTAINER ================== */
@@ -110,14 +121,13 @@ button:hover {
     transform: scale(1.02);
 }
 
-/* ================== BOTÕES EM GRUPO (EXPORTAÇÃO) ================== */
+/* ================== BOTÕES EM GRUPO ================== */
 .button-row {
     display: flex;
     gap: 12px;
     margin-top: 8px;
 }
 
-/* 🔥 CORREÇÃO PRINCIPAL DO PROBLEMA */
 .button-row button {
     flex: 1;
     width: auto;
@@ -193,20 +203,6 @@ tr:hover td {
 /* ================== SCROLL TABELA ================== */
 #dias {
     overflow-x: auto;
-}
-
-/* ================== DOMINGO ================== */
-.domingo {
-    background: #fff3f3 !important;
-}
-
-/* ================== FERIADO ================== */
-.feriado {
-    background: #ffe6e6 !important;
-}
-
-/* Força a visibilidade na hora da impressão/captura */
-#dias {
     background: white !important;
     min-height: 100px;
     display: block !important;
@@ -218,10 +214,97 @@ tr:hover td {
     background-color: white !important;
 }
 
-/* Evita que o html2canvas ignore o texto por causa de cores claras */
+/* ================== CORES ESPECIAIS ================== */
+.domingo {
+    background: #fff3f3 !important;
+}
+
+.feriado {
+    background: #ffe6e6 !important;
+}
+
 #dias td,
 #dias th {
     color: black !important;
     border: 1px solid #ccc !important;
     padding: 8px;
+}
+
+/* ================== LOGIN ================== */
+/* ================== FUNDO DA TELA ================== */
+.login {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ================== CARD DE LOGIN ================== */
+/* ================== FUNDO ================== */
+.login {
+    position: fixed;
+    inset: 0;
+    background: #f4f6f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ================== QUADRO CENTRAL ================== */
+.login-box {
+    width: 320px;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+/* TÍTULO */
+.login-box h2 {
+    text-align: center;
+    margin-bottom: 18px;
+    color: #27ae60;
+    font-size: 20px;
+}
+
+/* INPUTS */
+.login-box input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+}
+
+/* BOTÃO */
+.login-box button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: #2ecc71;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.login-box button:hover {
+    background: #27ae60;
+}
+
+/* ERRO */
+#erro {
+    margin-top: 10px;
+    font-size: 13px;
+    color: red;
+    text-align: center;
+}
+
+/* ================== APP ================== */
+#app {
+    display: none;
 }
