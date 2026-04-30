@@ -315,7 +315,9 @@ function recalcularMetas() {
     linhas.forEach(linha => {
         if (!linha.querySelector("td")) return;
 
-        let dataTexto = linha.cells[0].innerText;
+        let dataTexto = linha.cells[0]?.innerText;
+        if (!dataTexto) return;
+
         if (!dadosPorData[dataTexto]) dadosPorData[dataTexto] = [];
         dadosPorData[dataTexto].push(linha);
     });
@@ -327,7 +329,7 @@ function recalcularMetas() {
         );
 
         let ativas = linhasDoDia.filter(l =>
-            l.querySelector("input").checked
+            l.querySelector("input")?.checked
         );
 
         let qtd = ativas.length || 1;
@@ -336,6 +338,8 @@ function recalcularMetas() {
             let cb = linha.querySelector("input");
             let cell = linha.querySelector(".meta-individual");
 
+            if (!cb || !cell) return;
+
             if (cb.checked) {
                 cell.innerText = formatarReal(metaLoja / qtd);
             } else {
@@ -343,54 +347,23 @@ function recalcularMetas() {
             }
         });
     });
-}
 
-    // 3. Terceiro Passo: Somar os totais (Semana e Mês) com os novos valores
-    let somaSemanaIndiv = 0;
-    let somaSemanaLoja = 0;
+    // ================== SOMA TOTAL (AGORA DENTRO DA FUNÇÃO) ==================
     let somaMesIndiv = 0;
     let somaMesLoja = 0;
 
     linhas.forEach((linha) => {
-        if (linha.querySelector("th")) return;
+        if (!linha.querySelector("td")) return;
+        if (linha.classList.contains("linha-total-semanal") || linha.classList.contains("linha-total-mensal")) return;
 
-        // Se for linha de dados (não é total)
-        if (!linha.classList.contains("linha-total-semanal") && !linha.classList.contains("linha-total-mensal")) {
-            // Só somamos para o total se a linha estiver visível (filtro) e o checkbox marcado
-            if (linha.style.display !== "none") {
-                let vIndiv = converterValor(linha.querySelector(".meta-individual").innerText);
-                let vLoja = converterValor(linha.querySelector(".meta-total-dia").innerText);
-                
-                // IMPORTANTE: Para a Meta da Loja não duplicar no total quando houver 2 funcionárias, 
-                // somamos a loja apenas uma vez por dia (usando o índice da linha como controle)
-                // Mas aqui, como cada funcionária tem sua meta ind, somamos a ind individualmente.
-                
-                somaSemanaIndiv += vIndiv;
-                somaMesIndiv += vIndiv;
-                
-                // Lógica para não duplicar a Meta da Loja no somatório total:
-                // Verificamos se é a primeira funcionária visível daquela data
-                let dataAtual = linha.cells[0].innerText;
-                let primeiraDaData = linhas.find(l => l.cells[0]?.innerText === dataAtual && l.style.display !== "none");
-                
-                if (linha === primeiraDaData) {
-                    somaSemanaLoja += vLoja;
-                    somaMesLoja += vLoja;
-                }
-            }
+        if (linha.style.display !== "none") {
+            let vIndiv = converterValor(linha.querySelector(".meta-individual")?.innerText);
+            let vLoja = converterValor(linha.querySelector(".meta-total-dia")?.innerText);
+
+            somaMesIndiv += vIndiv;
+            somaMesLoja += vLoja;
         }
 
-        // Atualiza as linhas de Total da Semana
-        if (linha.classList.contains("linha-total-semanal")) {
-            linha.querySelector(".valor-semanal-indiv").innerText = formatarReal(somaSemanaIndiv);
-            linha.querySelector(".valor-semanal-loja").innerText = formatarReal(somaSemanaLoja);
-            
-            linha.style.display = (somaSemanaLoja === 0) ? "none" : "";
-            somaSemanaIndiv = 0;
-            somaSemanaLoja = 0;
-        }
-        
-        // Atualiza a linha de Total do Mês
         if (linha.classList.contains("linha-total-mensal")) {
             document.getElementById("total-mes-individual").innerText = formatarReal(somaMesIndiv);
             document.getElementById("total-mes-loja").innerText = formatarReal(somaMesLoja);
