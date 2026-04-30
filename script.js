@@ -168,57 +168,67 @@ function gerarCalendario() {
     let container = document.getElementById("dias");
     container.innerHTML = "";
 
-  let mes = parseInt(document.getElementById("mesSelecionado").value);
-let ano = parseInt(document.getElementById("anoSelecionado").value);
+    let mes = parseInt(document.getElementById("mesSelecionado").value);
+    let ano = parseInt(document.getElementById("anoSelecionado").value);
     let diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
     let abrirDomingo = document.getElementById("abrirDomingo")?.checked;
     let abrirFeriado = document.getElementById("trabalharFeriado")?.checked;
 
-    // 1. CALCULAR META TOTAL ALVO
     let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
     let metaMensalTotalAlvo = anoPassado * (1 + percentualGlobal / 100);
-    
-    // Calculamos uma média diária simples para preencher buracos (dias úteis sem valor no Excel)
-    let mediaDiariaBase = metaMensalTotalAlvo / 25; // Estimativa de 25 dias úteis
 
-    // 2. MAPEAMENTO INICIAL E SOMA DA META DISPONÍVEL
-    let somaMetaPlanejadaDiasUteis = 0;
-    let metasDiariasIniciais = {};
+    // 🔥 MÉDIA REAL (para dias zerados)
+    let valoresValidos = Object.values(vendasPorDia).filter(v => v > 0);
+    let mediaReal = valoresValidos.length > 0
+        ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length
+        : 0;
 
+    let somaDiasAtivos = 0;
+    let metasBase = {};
+
+    // ================= LOOP PRINCIPAL =================
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
         let dataPlanilha = `${String(i).padStart(2, "0")} ${meses[mes]} ${ano}`;
-        
+
         let isDomingo = data.getDay() === 0;
         let ehFeriado = isFeriado(data);
+
         let vaiTrabalhar = true;
         if (isDomingo && !abrirDomingo) vaiTrabalhar = false;
         if (ehFeriado && !abrirFeriado) vaiTrabalhar = false;
 
         let valorPlanilha = converterValor(vendasPorDia[dataPlanilha]);
-        let valorBase = valorPlanilha * (1 + percentualGlobal / 100);
-        
-        if (vaiTrabalhar) {
-            // SE O DIA É ÚTIL MAS ESTÁ EM BRANCO/ZERO, ATRIBUI A MÉDIA BASE
-            if (valorBase <= 0) {
-                valorBase = mediaDiariaBase;
-            }
-            metasDiariasIniciais[i] = valorBase;
-            somaMetaPlanejadaDiasUteis += valorBase;
+
+        let valorBase;
+
+        // 🔥 REGRA PRINCIPAL
+        if (valorPlanilha > 0) {
+            valorBase = valorPlanilha * (1 + percentualGlobal / 100);
         } else {
-            metasDiariasIniciais[i] = 0;
+            // Se ano passado foi zero → usa média
+            valorBase = mediaReal * (1 + percentualGlobal / 100);
+        }
+
+        if (vaiTrabalhar) {
+            metasBase[i] = valorBase;
+            somaDiasAtivos += valorBase;
+        } else {
+            metasBase[i] = 0;
         }
     }
 
-    // 3. CÁLCULO DO FATOR DE AJUSTE FINAL
-    // Esse fator vai "encolher" ou "esticar" as metas para que a soma dê exatamente o valor alvo
-    let fatorAjuste = somaMetaPlanejadaDiasUteis > 0 ? (metaMensalTotalAlvo / somaMetaPlanejadaDiasUteis) : 0;
+    // 🔥 FATOR DE AJUSTE (redistribuição proporcional)
+    let fatorAjuste = somaDiasAtivos > 0
+        ? (metaMensalTotalAlvo / somaDiasAtivos)
+        : 0;
 
-    // 4. GERAÇÃO DA TABELA
+    // ================= TABELA =================
     let tabela = document.createElement("table");
     tabela.style.width = "100%";
     tabela.border = "1";
+
     tabela.innerHTML = `
         <tr>
             <th>Data</th>
@@ -237,26 +247,36 @@ let ano = parseInt(document.getElementById("anoSelecionado").value);
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
         let semana = getSemanaAno(data);
-        
-        let valorMetaLojaFinal = metasDiariasIniciais[i] * fatorAjuste;
-        let metaIndividual = (funcionarias.length > 0 && valorMetaLojaFinal > 0) ? (valorMetaLojaFinal / funcionarias.length) : 0;
+
+        let valorMetaLojaFinal = metasBase[i] * fatorAjuste;
+
+        let metaIndividual = (funcionarias.length > 0 && valorMetaLojaFinal > 0)
+            ? (valorMetaLojaFinal / funcionarias.length)
+            : 0;
 
         if (semanaAtual !== null && semana !== semanaAtual) {
             tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-            totalSemanaLoja = 0; totalSemanaIndiv = 0;
+            totalSemanaLoja = 0;
+            totalSemanaIndiv = 0;
         }
 
         semanaAtual = semana;
+
         totalSemanaLoja += valorMetaLojaFinal;
         totalSemanaIndiv += (metaIndividual * funcionarias.length);
         totalMesLoja += valorMetaLojaFinal;
         totalMesIndiv += (metaIndividual * funcionarias.length);
 
         let dataTexto = `${String(i).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
-        let diaSemanaStr = data.getDay() === 0 ? "DOMINGO" : isFeriado(data) ? "FERIADO" : data.toLocaleDateString("pt-BR", { weekday: "long" });
+        let diaSemanaStr = data.getDay() === 0
+            ? "DOMINGO"
+            : isFeriado(data)
+                ? "FERIADO"
+                : data.toLocaleDateString("pt-BR", { weekday: "long" });
 
         funcionarias.forEach(nome => {
             let tr = document.createElement("tr");
+
             if (valorMetaLojaFinal === 0) tr.style.background = "#fff3f3";
 
             tr.innerHTML = `
@@ -267,27 +287,31 @@ let ano = parseInt(document.getElementById("anoSelecionado").value);
                 <td class="meta-individual">${formatarReal(metaIndividual)}</td>
                 <td class="meta-total-dia">${formatarReal(valorMetaLojaFinal)}</td>
             `;
+
             tabela.appendChild(tr);
         });
 
         if (i === diasNoMes) {
             tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
+
             let linhaMes = document.createElement("tr");
             linhaMes.classList.add("linha-total-mensal");
             linhaMes.style.background = "#2c3e50";
             linhaMes.style.color = "white";
             linhaMes.style.fontWeight = "bold";
+
             linhaMes.innerHTML = `
-                <td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL DO MÊS:</td>
+                <td colspan="4" style="text-align: right;">TOTAL DO MÊS:</td>
                 <td id="total-mes-individual">${formatarReal(totalMesIndiv)}</td>
                 <td id="total-mes-loja">${formatarReal(totalMesLoja)}</td>
             `;
+
             tabela.appendChild(linhaMes);
         }
     }
+
     container.appendChild(tabela);
 }
-
 function criarLinhaSemana(totalIndiv, totalLoja) {
     let tr = document.createElement("tr");
     tr.classList.add("linha-total-semanal");
