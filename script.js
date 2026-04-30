@@ -205,7 +205,8 @@ function gerarCalendario() {
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
        let mesNome = meses[mes].charAt(0).toUpperCase() + meses[mes].slice(1).toLowerCase();
-let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${ano}`;
+let anoBase = ano - 1; // 🔥 pega ano passado
+let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
 
         let isDomingo = data.getDay() === 0;
         let ehFeriado = isFeriado(data);
