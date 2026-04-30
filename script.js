@@ -131,7 +131,13 @@ function lerPlanilha() {
             // --- NOVA VERIFICAÇÃO AQUI ---
             if (!linha || !linha[0]) continue; // Pula linha vazia
             
-            let dataStr = linha[0].toString().trim();
+            let partes = linha[0].toString().trim().split(" ");
+
+let dia = partes[0].padStart(2, "0");
+let mes = partes[1];
+let ano = partes[2];
+
+let dataStr = `${dia} ${mes} ${ano}`;
             
             // Se a célula contiver a palavra "TOTAL" (em maiúsculo ou minúsculo), ignora a linha
             if (dataStr.toUpperCase().includes("TOTAL")) {
