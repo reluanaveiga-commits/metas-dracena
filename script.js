@@ -112,10 +112,14 @@ function lerPlanilha() {
     if (!file) return alert("Selecione a planilha!");
 
     const reader = new FileReader();
+
     reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-        const nomeAba = workbook.SheetNames.find(n => n.toLowerCase().trim() === "dia");
+
+        const nomeAba = workbook.SheetNames.find(n =>
+            n.toLowerCase().trim() === "dia"
+        );
 
         if (!nomeAba) return alert("Aba DIA não encontrada!");
 
@@ -127,50 +131,39 @@ function lerPlanilha() {
 
         for (let i = 1; i < linhas.length; i++) {
             let linha = linhas[i];
-            
-            // --- NOVA VERIFICAÇÃO AQUI ---
-            if (!linha || !linha[0]) continue; // Pula linha vazia
-            
-         let texto = linha[0]?.toString()?.trim();
+            if (!linha || !linha[0]) continue;
 
-if (!texto) continue;
+            let texto = linha[0].toString().trim();
+            if (!texto) continue;
+            if (texto.toLowerCase().includes("total")) continue;
 
-if (texto.toUpperCase().includes("TOTAL")) continue;
+            texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
 
-// remove barras e padroniza tudo
-texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+            let partes = texto.split(" ");
+            if (partes.length < 3) continue;
 
-let partes = texto.split(" ");
+            let dia = partes[0];
+            let mes = partes[1];
+            let ano = partes[2];
 
-let dia = partes[0];
-let mes = partes[1];
-let ano = partes[2];
+            if (!dia || !mes || !ano) continue;
 
-// proteção contra dados quebrados
-if (!dia || !mes || !ano) continue;
+            dia = dia.padStart(2, "0");
+            mes = mes.toString();
+            mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
 
-dia = dia.padStart(2, "0");
-
-// normaliza mês
-mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
-
-let dataStr = `${dia} ${mes} ${ano}`;
-            // Se a célula contiver a palavra "TOTAL" (em maiúsculo ou minúsculo), ignora a linha
-            if (dataStr.toUpperCase().includes("TOTAL")) {
-                console.log("Linha de total ignorada na importação");
-                continue; 
-            }
-            // -----------------------------
+            let dataStr = `${dia} ${mes} ${ano}`;
 
             let valor = converterValor(linha[1]);
             vendasPorDia[dataStr] = valor;
             totalAcumulado += valor;
         }
-        
-        // Atualiza o campo de valor do ano passado apenas com a soma dos dias reais
+
         document.getElementById("anoPassado").value = totalAcumulado.toFixed(2);
+
         alert("Planilha carregada com sucesso!");
     };
+
     reader.readAsArrayBuffer(file);
 }
 
@@ -187,6 +180,7 @@ function calcularMeta() {
 
 function gerarCalendario() {
     pegarFuncionarias();
+
     let container = document.getElementById("dias");
     container.innerHTML = "";
 
@@ -194,13 +188,9 @@ function gerarCalendario() {
     let ano = parseInt(document.getElementById("anoSelecionado").value);
     let diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
-    let abrirDomingo = document.getElementById("abrirDomingo")?.checked;
-    let abrirFeriado = document.getElementById("trabalharFeriado")?.checked;
-
     let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
     let metaMensalTotalAlvo = anoPassado * (1 + percentualGlobal / 100);
 
-    // 🔥 MÉDIA REAL (para dias zerados)
     let valoresValidos = Object.values(vendasPorDia).filter(v => v > 0);
     let mediaReal = valoresValidos.length > 0
         ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length
@@ -209,46 +199,26 @@ function gerarCalendario() {
     let somaDiasAtivos = 0;
     let metasBase = {};
 
-    // ================= LOOP PRINCIPAL =================
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
-       let mesNome = meses[mes].charAt(0).toUpperCase() + meses[mes].slice(1).toLowerCase();
-let anoBase = ano - 1; // 🔥 pega ano passado
-let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
 
-        let isDomingo = data.getDay() === 0;
-        let ehFeriado = isFeriado(data);
-
-        let vaiTrabalhar = true;
-        if (isDomingo && !abrirDomingo) vaiTrabalhar = false;
-        if (ehFeriado && !abrirFeriado) vaiTrabalhar = false;
+        let mesNome = meses[mes];
+        let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${ano - 1}`;
 
         let valorPlanilha = converterValor(vendasPorDia[dataPlanilha]);
 
-        let valorBase;
+        let valorBase = valorPlanilha > 0
+            ? valorPlanilha * (1 + percentualGlobal / 100)
+            : mediaReal * (1 + percentualGlobal / 100);
 
-        // 🔥 REGRA PRINCIPAL
-        if (valorPlanilha > 0) {
-            valorBase = valorPlanilha * (1 + percentualGlobal / 100);
-        } else {
-            // Se ano passado foi zero → usa média
-            valorBase = mediaReal * (1 + percentualGlobal / 100);
-        }
-
-        if (vaiTrabalhar) {
-            metasBase[i] = valorBase;
-            somaDiasAtivos += valorBase;
-        } else {
-            metasBase[i] = 0;
-        }
+        metasBase[i] = valorBase;
+        somaDiasAtivos += valorBase;
     }
 
-    // 🔥 FATOR DE AJUSTE (redistribuição proporcional)
     let fatorAjuste = somaDiasAtivos > 0
         ? (metaMensalTotalAlvo / somaDiasAtivos)
-        : 0;
+        : 1;
 
-    // ================= TABELA =================
     let tabela = document.createElement("table");
     tabela.style.width = "100%";
     tabela.border = "1";
@@ -264,74 +234,34 @@ let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
         </tr>
     `;
 
-    let semanaAtual = null;
-    let totalSemanaLoja = 0, totalSemanaIndiv = 0;
-    let totalMesLoja = 0, totalMesIndiv = 0;
+    let totalMesIndiv = 0;
+    let totalMesLoja = 0;
 
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
-        let semana = getSemanaAno(data);
-
         let valorMetaLojaFinal = metasBase[i] * fatorAjuste;
 
-        let metaIndividual = (funcionarias.length > 0 && valorMetaLojaFinal > 0)
-            ? (valorMetaLojaFinal / funcionarias.length)
-            : 0;
+        let metaIndividual = valorMetaLojaFinal; // 🔥 CORRIGIDO (NÃO dividir aqui)
 
-        if (semanaAtual !== null && semana !== semanaAtual) {
-            tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-            totalSemanaLoja = 0;
-            totalSemanaIndiv = 0;
-        }
-
-        semanaAtual = semana;
-
-        totalSemanaLoja += valorMetaLojaFinal;
-        totalSemanaIndiv += (metaIndividual * funcionarias.length);
+        totalMesIndiv += metaIndividual;
         totalMesLoja += valorMetaLojaFinal;
-        totalMesIndiv += (metaIndividual * funcionarias.length);
 
-        let dataTexto = `${String(i).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
-        let diaSemanaStr = data.getDay() === 0
-            ? "DOMINGO"
-            : isFeriado(data)
-                ? "FERIADO"
-                : data.toLocaleDateString("pt-BR", { weekday: "long" });
+        let dataTexto = `${String(i).padStart(2, "0")}/${mes + 1}/${ano}`;
 
         funcionarias.forEach(nome => {
             let tr = document.createElement("tr");
 
-            if (valorMetaLojaFinal === 0) tr.style.background = "#fff3f3";
-
             tr.innerHTML = `
                 <td>${dataTexto}</td>
-                <td>${diaSemanaStr}</td>
+                <td>${data.getDay()}</td>
                 <td class="func">${nome}</td>
-                <td><input type="checkbox" ${valorMetaLojaFinal > 0 ? 'checked' : ''} onchange="recalcularMetas()"></td>
+                <td><input type="checkbox" checked onchange="recalcularMetas()"></td>
                 <td class="meta-individual">${formatarReal(metaIndividual)}</td>
                 <td class="meta-total-dia">${formatarReal(valorMetaLojaFinal)}</td>
             `;
 
             tabela.appendChild(tr);
         });
-
-        if (i === diasNoMes) {
-            tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-
-            let linhaMes = document.createElement("tr");
-            linhaMes.classList.add("linha-total-mensal");
-            linhaMes.style.background = "#2c3e50";
-            linhaMes.style.color = "white";
-            linhaMes.style.fontWeight = "bold";
-
-            linhaMes.innerHTML = `
-                <td colspan="4" style="text-align: right;">TOTAL DO MÊS:</td>
-                <td id="total-mes-individual">${formatarReal(totalMesIndiv)}</td>
-                <td id="total-mes-loja">${formatarReal(totalMesLoja)}</td>
-            `;
-
-            tabela.appendChild(linhaMes);
-        }
     }
 
     container.appendChild(tabela);
@@ -379,41 +309,41 @@ function filtrarTabela() {
 
 function recalcularMetas() {
     const linhas = Array.from(document.querySelectorAll("#dias tr"));
-    
-    // Agrupamos as linhas por data para saber quem trabalha no mesmo dia
+
     let dadosPorData = {};
 
-    // 1. Primeiro Passo: Mapear a estrutura e calcular as novas metas individuais
     linhas.forEach(linha => {
-        if (linha.querySelector("th") || linha.classList.contains("linha-total-semanal") || linha.classList.contains("linha-total-mensal")) return;
+        if (!linha.querySelector("td")) return;
 
         let dataTexto = linha.cells[0].innerText;
         if (!dadosPorData[dataTexto]) dadosPorData[dataTexto] = [];
         dadosPorData[dataTexto].push(linha);
     });
 
-    // 2. Segundo Passo: Redistribuir a meta dentro de cada dia
-    for (let data in dadosPorData) {
-        let linhasDoDia = dadosPorData[data];
-        let metaLoja = converterValor(linhasDoDia[0].querySelector(".meta-total-dia").innerText);
-        
-        // Contamos quantas funcionárias estão "Ativas" (checkbox marcado)
-        let funcionariasAtivas = linhasDoDia.filter(l => l.querySelector("input[type='checkbox']").checked);
+    Object.values(dadosPorData).forEach(linhasDoDia => {
+
+        let metaLoja = converterValor(
+            linhasDoDia[0].querySelector(".meta-total-dia").innerText
+        );
+
+        let ativas = linhasDoDia.filter(l =>
+            l.querySelector("input").checked
+        );
+
+        let qtd = ativas.length || 1;
 
         linhasDoDia.forEach(linha => {
-            let cb = linha.querySelector("input[type='checkbox']");
-            let celulaIndividual = linha.querySelector(".meta-individual");
+            let cb = linha.querySelector("input");
+            let cell = linha.querySelector(".meta-individual");
 
             if (cb.checked) {
-                // Se estiver ativa, recebe a meta da loja dividida pelo total de ativas
-                let novaMetaIndiv = metaLoja / funcionariasAtivas.length;
-                celulaIndividual.innerText = formatarReal(novaMetaIndiv);
+                cell.innerText = formatarReal(metaLoja / qtd);
             } else {
-                // Se estiver de folga (desativada), a meta individual é 0
-                celulaIndividual.innerText = formatarReal(0);
+                cell.innerText = formatarReal(0);
             }
         });
-    }
+    });
+}
 
     // 3. Terceiro Passo: Somar os totais (Semana e Mês) com os novos valores
     let somaSemanaIndiv = 0;
