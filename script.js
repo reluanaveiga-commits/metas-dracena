@@ -53,6 +53,11 @@ function converterValor(valor) {
 
 // ================== CIDADE E CARREGAMENTO ==================
 window.addEventListener("load", () => {
+    const hoje = new Date();
+
+    document.getElementById("mesSelecionado").value = hoje.getMonth();
+    document.getElementById("anoSelecionado").value = hoje.getFullYear();
+
     const cidade = document.getElementById("cidade");
     cidade?.addEventListener("change", (e) => {
         carregarFuncionarias(e.target.value);
@@ -166,9 +171,8 @@ function gerarCalendario() {
     let container = document.getElementById("dias");
     container.innerHTML = "";
 
-    let hoje = new Date();
-    let ano = hoje.getFullYear();
-    let mes = hoje.getMonth();
+  let mes = parseInt(document.getElementById("mesSelecionado").value);
+let ano = parseInt(document.getElementById("anoSelecionado").value);
     let diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
     let abrirDomingo = document.getElementById("abrirDomingo")?.checked;
