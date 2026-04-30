@@ -51,15 +51,15 @@ function converterValor(valor) {
 }
 
 // ================== LOGIN (CORRIGIDO) ==================
-const usuarios = [
-    { usuario: "Admin", senha: "4321" },
-    { usuario: "Luana", senha: "2560" },
-    { usuario: "Teste", senha: "0000" }
-];
-
 window.entrar = function () {
     const user = document.getElementById("usuario").value;
     const senha = document.getElementById("senha").value;
+
+    const usuarios = [
+        { usuario: "Admin", senha: "4321" },
+        { usuario: "Luana", senha: "2560" },
+        { usuario: "Teste", senha: "0000" }
+    ];
 
     const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
 
