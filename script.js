@@ -131,10 +131,18 @@ function lerPlanilha() {
             // --- NOVA VERIFICAÇÃO AQUI ---
             if (!linha || !linha[0]) continue; // Pula linha vazia
             
-            let partes = linha[0].toString().trim().split(" ");
+           let texto = linha[0].toString().trim().toLowerCase();
+
+if (texto.includes("total")) continue;
+
+// Normaliza espaços
+texto = texto.replace(/\s+/g, " ");
+
+// Quebra partes
+let partes = texto.split(" ");
 
 let dia = partes[0].padStart(2, "0");
-let mes = partes[1];
+let mes = partes[1].charAt(0).toUpperCase() + partes[1].slice(1).toLowerCase();
 let ano = partes[2];
 
 let dataStr = `${dia} ${mes} ${ano}`;
@@ -196,7 +204,8 @@ function gerarCalendario() {
     // ================= LOOP PRINCIPAL =================
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
-        let dataPlanilha = `${String(i).padStart(2, "0")} ${meses[mes]} ${ano}`;
+       let mesNome = meses[mes].charAt(0).toUpperCase() + meses[mes].slice(1).toLowerCase();
+let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${ano}`;
 
         let isDomingo = data.getDay() === 0;
         let ehFeriado = isFeriado(data);
