@@ -37,7 +37,7 @@ function formatarReal(valor) {
 }
 
 function converterValor(valor) {
-    if (!valor) return 0;
+    if (valor === null || valor === undefined) return 0;
     if (typeof valor === "number") return valor;
 
     let str = valor.toString()
@@ -50,39 +50,80 @@ function converterValor(valor) {
     return isNaN(n) ? 0 : n;
 }
 
-// ================== LOGIN ==================
-window.entrar = function () {
-    const user = document.getElementById("usuario").value;
-    const senha = document.getElementById("senha").value;
+// ================== CIDADE (CORRIGIDO) ==================
+window.addEventListener("load", () => {
+    const cidade = document.getElementById("cidade");
 
-    const usuarios = [
-        { usuario: "Admin", senha: "4321" },
-        { usuario: "Luana", senha: "2560" },
-        { usuario: "Teste", senha: "0000" }
-    ];
+    if (cidade) {
+        cidade.addEventListener("change", (e) => {
+            carregarFuncionarias(e.target.value);
+        });
 
-    const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
-
-    if (valido) {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "block";
-    } else {
-        document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
+        // carrega inicial
+        if (cidade.value) {
+            carregarFuncionarias(cidade.value);
+        }
     }
-};
+});
 
-// ================== FUNCIONÁRIAS ==================
+// ================== CARREGAR FUNCIONÁRIAS ==================
+function carregarFuncionarias(cidade) {
+    const container = document.getElementById("listaFuncionarias");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const lista = funcionariosPorCidade[cidade] || [];
+
+    lista.forEach(nome => {
+        const div = document.createElement("div");
+        div.classList.add("funcionario");
+
+        div.innerHTML = `
+            <input type="text" value="${nome}">
+            <button onclick="this.parentElement.remove(); pegarFuncionarias();">
+                Remover
+            </button>
+        `;
+
+        container.appendChild(div);
+    });
+
+    pegarFuncionarias();
+}
+
+// ================== ADICIONAR FUNCIONÁRIO ==================
+function adicionarFuncionario() {
+    const container = document.getElementById("listaFuncionarias");
+    if (!container) return;
+
+    const div = document.createElement("div");
+    div.classList.add("funcionario");
+
+    div.innerHTML = `
+        <input type="text" value="">
+        <button onclick="this.parentElement.remove(); pegarFuncionarias();">
+            Remover
+        </button>
+    `;
+
+    container.appendChild(div);
+}
+
+// ================== PEGAR FUNCIONÁRIAS ==================
 function pegarFuncionarias() {
     let inputs = document.querySelectorAll("#listaFuncionarias input");
     funcionarias = [];
 
     inputs.forEach(i => {
-        if (i.value.trim()) funcionarias.push(i.value.trim());
+        let valor = i.value.trim();
+        if (valor) funcionarias.push(valor);
     });
 
     atualizarFiltro();
 }
 
+// ================== FILTRO ==================
 function atualizarFiltro() {
     let select = document.getElementById("filtro");
     if (!select) return;
@@ -95,6 +136,27 @@ function atualizarFiltro() {
         opt.textContent = n;
         select.appendChild(opt);
     });
+}
+
+// ================== LOGIN ==================
+const usuarios = [
+    { usuario: "Admin", senha: "4321" },
+    { usuario: "Luana", senha: "2560" },
+    { usuario: "Teste", senha: "0000" }
+];
+
+function entrar() {
+    const user = document.getElementById("usuario").value;
+    const senha = document.getElementById("senha").value;
+
+    const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
+
+    if (valido) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+    } else {
+        document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
+    }
 }
 
 // ================== PLANILHA ==================
