@@ -131,22 +131,30 @@ function lerPlanilha() {
             // --- NOVA VERIFICAÇÃO AQUI ---
             if (!linha || !linha[0]) continue; // Pula linha vazia
             
-           let texto = linha[0].toString().trim().toLowerCase();
+         let texto = linha[0]?.toString()?.trim();
 
-if (texto.includes("total")) continue;
+if (!texto) continue;
 
-// Normaliza espaços
-texto = texto.replace(/\s+/g, " ");
+if (texto.toUpperCase().includes("TOTAL")) continue;
 
-// Quebra partes
+// remove barras e padroniza tudo
+texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+
 let partes = texto.split(" ");
 
-let dia = partes[0].padStart(2, "0");
-let mes = partes[1].charAt(0).toUpperCase() + partes[1].slice(1).toLowerCase();
+let dia = partes[0];
+let mes = partes[1];
 let ano = partes[2];
 
+// proteção contra dados quebrados
+if (!dia || !mes || !ano) continue;
+
+dia = dia.padStart(2, "0");
+
+// normaliza mês
+mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
+
 let dataStr = `${dia} ${mes} ${ano}`;
-            
             // Se a célula contiver a palavra "TOTAL" (em maiúsculo ou minúsculo), ignora a linha
             if (dataStr.toUpperCase().includes("TOTAL")) {
                 console.log("Linha de total ignorada na importação");
