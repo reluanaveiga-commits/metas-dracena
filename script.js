@@ -57,7 +57,7 @@ const usuarios = [
     { usuario: "Teste", senha: "0000" }
 ];
 
-function entrar() {
+window.entrar = function () {
     const user = document.getElementById("usuario").value;
     const senha = document.getElementById("senha").value;
 
@@ -69,7 +69,7 @@ function entrar() {
     } else {
         document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
     }
-}
+};
 
 // ================== FUNCIONÁRIAS ==================
 function pegarFuncionarias() {
