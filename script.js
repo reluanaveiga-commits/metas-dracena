@@ -17,15 +17,14 @@ function isFeriado(data) {
     return feriados.includes(`${dia}/${mes}`);
 }
 
-// ================== FUNCIONÁRIAS POR CIDADE ==================
+// ================== FUNCIONÁRIAS ==================
 const funcionariosPorCidade = {
-   "Ikeda": ["Franciele", "Andressa", "Nicole"],
+    "Ikeda": ["Franciele", "Andressa", "Nicole"],
     "Dracena": ["Suelen", "Nicolie", "Carmem"],
     "Junqueirópolis": ["Giovana", "Stefany", "Mariana"],
     "Tupi Paulista": ["Mariana", "Bruna", "Jheniffer"],
     "Panorama": ["Camila", "Jaqueline"],
     "Paulicéia": ["Mariele", "Myllena"]
-            
 };
 
 // ================== FORMATAÇÃO ==================
@@ -38,65 +37,58 @@ function formatarReal(valor) {
 }
 
 function converterValor(valor) {
-    if (valor === null || valor === undefined) return 0;
-    if (typeof valor === 'number') return valor;
+    if (!valor) return 0;
+    if (typeof valor === "number") return valor;
 
     let str = valor.toString()
         .replace("R$", "")
         .replace(/\s/g, "")
         .replace(/\./g, "")
         .replace(",", ".");
-    
+
     let n = parseFloat(str);
     return isNaN(n) ? 0 : n;
 }
 
-// ================== CIDADE E CARREGAMENTO ==================
-window.addEventListener("load", () => {
-    const hoje = new Date();
+// ================== LOGIN (CORRIGIDO) ==================
+const usuarios = [
+    { usuario: "Admin", senha: "4321" },
+    { usuario: "Luana", senha: "2560" },
+    { usuario: "Teste", senha: "0000" }
+];
 
-      const cidade = document.getElementById("cidade");
-    cidade?.addEventListener("change", (e) => {
-        carregarFuncionarias(e.target.value);
-    });
-});
+function entrar() {
+    const user = document.getElementById("usuario").value;
+    const senha = document.getElementById("senha").value;
 
-function carregarFuncionarias(cidade) {
-    const container = document.getElementById("listaFuncionarias");
-    if (!container) return;
-    container.innerHTML = "";
-    const lista = funcionariosPorCidade[cidade];
+    const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
 
-    if (!Array.isArray(lista)) {
-        pegarFuncionarias();
-        return;
+    if (valido) {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("app").style.display = "block";
+    } else {
+        document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
     }
-
-    lista.forEach(nome => {
-        const div = document.createElement("div");
-        div.classList.add("funcionario");
-        div.innerHTML = `
-            <input type="text" value="${nome}">
-            <button onclick="this.parentElement.remove(); pegarFuncionarias();">Remover</button>
-        `;
-        container.appendChild(div);
-    });
-    pegarFuncionarias();
 }
 
+// ================== FUNCIONÁRIAS ==================
 function pegarFuncionarias() {
     let inputs = document.querySelectorAll("#listaFuncionarias input");
     funcionarias = [];
+
     inputs.forEach(i => {
         if (i.value.trim()) funcionarias.push(i.value.trim());
     });
+
     atualizarFiltro();
 }
 
 function atualizarFiltro() {
     let select = document.getElementById("filtro");
     if (!select) return;
+
     select.innerHTML = `<option value="todas">Todas</option>`;
+
     funcionarias.forEach(n => {
         let opt = document.createElement("option");
         opt.value = n;
@@ -106,16 +98,19 @@ function atualizarFiltro() {
 }
 
 // ================== PLANILHA ==================
-// ================== PLANILHA (CORRIGIDA) ==================
 function lerPlanilha() {
     const file = document.getElementById("inputExcel").files[0];
     if (!file) return alert("Selecione a planilha!");
 
     const reader = new FileReader();
+
     reader.onload = function (e) {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
-        const nomeAba = workbook.SheetNames.find(n => n.toLowerCase().trim() === "dia");
+
+        const nomeAba = workbook.SheetNames.find(n =>
+            n.toLowerCase().trim() === "dia"
+        );
 
         if (!nomeAba) return alert("Aba DIA não encontrada!");
 
@@ -127,128 +122,62 @@ function lerPlanilha() {
 
         for (let i = 1; i < linhas.length; i++) {
             let linha = linhas[i];
-            
-            // --- NOVA VERIFICAÇÃO AQUI ---
-            if (!linha || !linha[0]) continue; // Pula linha vazia
-            
-         let texto = linha[0]?.toString()?.trim();
+            if (!linha || !linha[0]) continue;
 
-if (!texto) continue;
+            let texto = linha[0].toString().trim();
+            if (!texto || texto.toUpperCase().includes("TOTAL")) continue;
 
-if (texto.toUpperCase().includes("TOTAL")) continue;
+            texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+            let partes = texto.split(" ");
 
-// remove barras e padroniza tudo
-texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
+            if (partes.length < 3) continue;
 
-let partes = texto.split(" ");
+            let dia = partes[0].padStart(2, "0");
+            let mes = partes[1];
+            let ano = partes[2];
 
-let dia = partes[0];
-let mes = partes[1];
-let ano = partes[2];
-
-// proteção contra dados quebrados
-if (!dia || !mes || !ano) continue;
-
-dia = dia.padStart(2, "0");
-
-// normaliza mês
-mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
-
-let dataStr = `${dia} ${mes} ${ano}`;
-            // Se a célula contiver a palavra "TOTAL" (em maiúsculo ou minúsculo), ignora a linha
-            if (dataStr.toUpperCase().includes("TOTAL")) {
-                console.log("Linha de total ignorada na importação");
-                continue; 
-            }
-            // -----------------------------
+            let dataStr = `${dia} ${mes} ${ano}`;
 
             let valor = converterValor(linha[1]);
+
             vendasPorDia[dataStr] = valor;
             totalAcumulado += valor;
         }
-        
-        // Atualiza o campo de valor do ano passado apenas com a soma dos dias reais
+
         document.getElementById("anoPassado").value = totalAcumulado.toFixed(2);
         alert("Planilha carregada com sucesso!");
     };
+
     reader.readAsArrayBuffer(file);
 }
 
-// ================== CÁLCULOS E CALENDÁRIO ==================
+// ================== CALENDÁRIO ==================
 function calcularMeta() {
     let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
     let percentual = parseFloat(document.getElementById("percentual").value || 0);
+
     percentualGlobal = percentual;
 
     let meta = anoPassado * (1 + percentual / 100);
-    document.getElementById("metaResultado").innerText = "Meta mensal: " + formatarReal(meta);
+
+    document.getElementById("metaResultado").innerText =
+        "Meta mensal: " + formatarReal(meta);
+
     gerarCalendario();
 }
 
+// ================== CALENDÁRIO ==================
 function gerarCalendario() {
     pegarFuncionarias();
+
     let container = document.getElementById("dias");
     container.innerHTML = "";
 
     let mes = parseInt(document.getElementById("mesSelecionado").value);
     let ano = parseInt(document.getElementById("anoSelecionado").value);
+
     let diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
-    let abrirDomingo = document.getElementById("abrirDomingo")?.checked;
-    let abrirFeriado = document.getElementById("trabalharFeriado")?.checked;
-
-    let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
-    let metaMensalTotalAlvo = anoPassado * (1 + percentualGlobal / 100);
-
-    // 🔥 MÉDIA REAL (para dias zerados)
-    let valoresValidos = Object.values(vendasPorDia).filter(v => v > 0);
-    let mediaReal = valoresValidos.length > 0
-        ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length
-        : 0;
-
-    let somaDiasAtivos = 0;
-    let metasBase = {};
-
-    // ================= LOOP PRINCIPAL =================
-    for (let i = 1; i <= diasNoMes; i++) {
-        let data = new Date(ano, mes, i);
-       let mesNome = meses[mes].charAt(0).toUpperCase() + meses[mes].slice(1).toLowerCase();
-let anoBase = ano - 1; // 🔥 pega ano passado
-let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
-
-        let isDomingo = data.getDay() === 0;
-        let ehFeriado = isFeriado(data);
-
-        let vaiTrabalhar = true;
-        if (isDomingo && !abrirDomingo) vaiTrabalhar = false;
-        if (ehFeriado && !abrirFeriado) vaiTrabalhar = false;
-
-        let valorPlanilha = converterValor(vendasPorDia[dataPlanilha]);
-
-        let valorBase;
-
-        // 🔥 REGRA PRINCIPAL
-        if (valorPlanilha > 0) {
-            valorBase = valorPlanilha * (1 + percentualGlobal / 100);
-        } else {
-            // Se ano passado foi zero → usa média
-            valorBase = mediaReal * (1 + percentualGlobal / 100);
-        }
-
-        if (vaiTrabalhar) {
-            metasBase[i] = valorBase;
-            somaDiasAtivos += valorBase;
-        } else {
-            metasBase[i] = 0;
-        }
-    }
-
-    // 🔥 FATOR DE AJUSTE (redistribuição proporcional)
-    let fatorAjuste = somaDiasAtivos > 0
-        ? (metaMensalTotalAlvo / somaDiasAtivos)
-        : 0;
-
-    // ================= TABELA =================
     let tabela = document.createElement("table");
     tabela.style.width = "100%";
     tabela.border = "1";
@@ -260,211 +189,67 @@ let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
             <th>Funcionária</th>
             <th>Ativo</th>
             <th>Meta Individual</th>
-            <th>Total Dia (Loja)</th>
+            <th>Total Dia</th>
         </tr>
     `;
 
-    let semanaAtual = null;
-    let totalSemanaLoja = 0, totalSemanaIndiv = 0;
-    let totalMesLoja = 0, totalMesIndiv = 0;
-
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
-        let semana = getSemanaAno(data);
-
-        let valorMetaLojaFinal = metasBase[i] * fatorAjuste;
-
-        let metaIndividual = (funcionarias.length > 0 && valorMetaLojaFinal > 0)
-            ? (valorMetaLojaFinal / funcionarias.length)
-            : 0;
-
-        if (semanaAtual !== null && semana !== semanaAtual) {
-            tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-            totalSemanaLoja = 0;
-            totalSemanaIndiv = 0;
-        }
-
-        semanaAtual = semana;
-
-        totalSemanaLoja += valorMetaLojaFinal;
-        totalSemanaIndiv += (metaIndividual * funcionarias.length);
-        totalMesLoja += valorMetaLojaFinal;
-        totalMesIndiv += (metaIndividual * funcionarias.length);
-
-        let dataTexto = `${String(i).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
-        let diaSemanaStr = data.getDay() === 0
-            ? "DOMINGO"
-            : isFeriado(data)
-                ? "FERIADO"
-                : data.toLocaleDateString("pt-BR", { weekday: "long" });
 
         funcionarias.forEach(nome => {
             let tr = document.createElement("tr");
 
-            if (valorMetaLojaFinal === 0) tr.style.background = "#fff3f3";
-
             tr.innerHTML = `
-                <td>${dataTexto}</td>
-                <td>${diaSemanaStr}</td>
+                <td>${String(i).padStart(2, "0")}/${mes + 1}/${ano}</td>
+                <td>${data.getDay()}</td>
                 <td class="func">${nome}</td>
-                <td><input type="checkbox" ${valorMetaLojaFinal > 0 ? 'checked' : ''} onchange="recalcularMetas()"></td>
-                <td class="meta-individual">${formatarReal(metaIndividual)}</td>
-                <td class="meta-total-dia">${formatarReal(valorMetaLojaFinal)}</td>
+                <td><input type="checkbox" checked onchange="recalcularMetas()"></td>
+                <td class="meta-individual">R$ 0,00</td>
+                <td class="meta-total-dia">R$ 0,00</td>
             `;
 
             tabela.appendChild(tr);
         });
-
-        if (i === diasNoMes) {
-            tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-
-            let linhaMes = document.createElement("tr");
-            linhaMes.classList.add("linha-total-mensal");
-            linhaMes.style.background = "#2c3e50";
-            linhaMes.style.color = "white";
-            linhaMes.style.fontWeight = "bold";
-
-            linhaMes.innerHTML = `
-                <td colspan="4" style="text-align: right;">TOTAL DO MÊS:</td>
-                <td id="total-mes-individual">${formatarReal(totalMesIndiv)}</td>
-                <td id="total-mes-loja">${formatarReal(totalMesLoja)}</td>
-            `;
-
-            tabela.appendChild(linhaMes);
-        }
     }
 
     container.appendChild(tabela);
 }
-function criarLinhaSemana(totalIndiv, totalLoja) {
-    let tr = document.createElement("tr");
-    tr.classList.add("linha-total-semanal");
-    tr.style.background = "#dff7e6";
-    tr.style.fontWeight = "bold";
 
-    tr.innerHTML = `
-        <td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL DA SEMANA:</td>
-        <td class="valor-semanal-indiv">${formatarReal(totalIndiv)}</td>
-        <td class="valor-semanal-loja">${formatarReal(totalLoja)}</td>
-    `;
-    return tr;
-}
-
-function getSemanaAno(data) {
-    let primeiroJan = new Date(data.getFullYear(), 0, 1);
-    let dias = Math.floor((data - primeiroJan) / 86400000);
-    return Math.ceil((dias + primeiroJan.getDay() + 1) / 7);
-}
-
-// ================== FILTRO E RECALCULO ==================
-function filtrarTabela() {
-    let filtro = document.getElementById("filtro").value;
+// ================== RECALCULAR (CORRIGIDO) ==================
+function recalcularMetas() {
     let linhas = document.querySelectorAll("#dias tr");
 
-    linhas.forEach((l, i) => {
-        if (i === 0) return; 
-        let nomeFunc = l.querySelector(".func")?.innerText;
-
-        if (l.classList.contains("linha-total-semanal")) {
-            l.style.display = ""; 
-            return;
-        }
-
-        if (nomeFunc) {
-            l.style.display = (filtro === "todas" || nomeFunc === filtro) ? "" : "none";
-        }
-    });
-    recalcularMetas(); 
-}
-
-function recalcularMetas() {
-    const linhas = Array.from(document.querySelectorAll("#dias tr"));
-    
-    // Agrupamos as linhas por data para saber quem trabalha no mesmo dia
     let dadosPorData = {};
 
-    // 1. Primeiro Passo: Mapear a estrutura e calcular as novas metas individuais
     linhas.forEach(linha => {
-        if (linha.querySelector("th") || linha.classList.contains("linha-total-semanal") || linha.classList.contains("linha-total-mensal")) return;
+        if (!linha.querySelector("td")) return;
 
-        let dataTexto = linha.cells[0].innerText;
-        if (!dadosPorData[dataTexto]) dadosPorData[dataTexto] = [];
-        dadosPorData[dataTexto].push(linha);
+        let data = linha.cells[0].innerText;
+
+        if (!dadosPorData[data]) dadosPorData[data] = [];
+        dadosPorData[data].push(linha);
     });
 
-    // 2. Segundo Passo: Redistribuir a meta dentro de cada dia
-    for (let data in dadosPorData) {
-        let linhasDoDia = dadosPorData[data];
-        let metaLoja = converterValor(linhasDoDia[0].querySelector(".meta-total-dia").innerText);
-        
-        // Contamos quantas funcionárias estão "Ativas" (checkbox marcado)
-        let funcionariasAtivas = linhasDoDia.filter(l => l.querySelector("input[type='checkbox']").checked);
+    Object.values(dadosPorData).forEach(linhasDoDia => {
+
+        let metaLoja = 100;
+
+        let ativas = linhasDoDia.filter(l =>
+            l.querySelector("input")?.checked
+        );
+
+        let qtd = ativas.length || 1;
 
         linhasDoDia.forEach(linha => {
-            let cb = linha.querySelector("input[type='checkbox']");
-            let celulaIndividual = linha.querySelector(".meta-individual");
+            let cb = linha.querySelector("input");
+            let cell = linha.querySelector(".meta-individual");
 
-            if (cb.checked) {
-                // Se estiver ativa, recebe a meta da loja dividida pelo total de ativas
-                let novaMetaIndiv = metaLoja / funcionariasAtivas.length;
-                celulaIndividual.innerText = formatarReal(novaMetaIndiv);
+            if (cb?.checked) {
+                cell.innerText = formatarReal(metaLoja / qtd);
             } else {
-                // Se estiver de folga (desativada), a meta individual é 0
-                celulaIndividual.innerText = formatarReal(0);
+                cell.innerText = formatarReal(0);
             }
         });
-    }
-
-    // 3. Terceiro Passo: Somar os totais (Semana e Mês) com os novos valores
-    let somaSemanaIndiv = 0;
-    let somaSemanaLoja = 0;
-    let somaMesIndiv = 0;
-    let somaMesLoja = 0;
-
-    linhas.forEach((linha) => {
-        if (linha.querySelector("th")) return;
-
-        // Se for linha de dados (não é total)
-        if (!linha.classList.contains("linha-total-semanal") && !linha.classList.contains("linha-total-mensal")) {
-            // Só somamos para o total se a linha estiver visível (filtro) e o checkbox marcado
-            if (linha.style.display !== "none") {
-                let vIndiv = converterValor(linha.querySelector(".meta-individual").innerText);
-                let vLoja = converterValor(linha.querySelector(".meta-total-dia").innerText);
-                
-                // IMPORTANTE: Para a Meta da Loja não duplicar no total quando houver 2 funcionárias, 
-                // somamos a loja apenas uma vez por dia (usando o índice da linha como controle)
-                // Mas aqui, como cada funcionária tem sua meta ind, somamos a ind individualmente.
-                
-                somaSemanaIndiv += vIndiv;
-                somaMesIndiv += vIndiv;
-                
-                // Lógica para não duplicar a Meta da Loja no somatório total:
-                // Verificamos se é a primeira funcionária visível daquela data
-                let dataAtual = linha.cells[0].innerText;
-                let primeiraDaData = linhas.find(l => l.cells[0]?.innerText === dataAtual && l.style.display !== "none");
-                
-                if (linha === primeiraDaData) {
-                    somaSemanaLoja += vLoja;
-                    somaMesLoja += vLoja;
-                }
-            }
-        }
-
-        // Atualiza as linhas de Total da Semana
-        if (linha.classList.contains("linha-total-semanal")) {
-            linha.querySelector(".valor-semanal-indiv").innerText = formatarReal(somaSemanaIndiv);
-            linha.querySelector(".valor-semanal-loja").innerText = formatarReal(somaSemanaLoja);
-            
-            linha.style.display = (somaSemanaLoja === 0) ? "none" : "";
-            somaSemanaIndiv = 0;
-            somaSemanaLoja = 0;
-        }
-        
-        // Atualiza a linha de Total do Mês
-        if (linha.classList.contains("linha-total-mensal")) {
-            document.getElementById("total-mes-individual").innerText = formatarReal(somaMesIndiv);
-            document.getElementById("total-mes-loja").innerText = formatarReal(somaMesLoja);
-        }
     });
 }
 
