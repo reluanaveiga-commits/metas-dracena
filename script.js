@@ -17,7 +17,7 @@ function isFeriado(data) {
     return feriados.includes(`${dia}/${mes}`);
 }
 
-// ================== FUNCIONÁRIAS ==================
+// ================== FUNCIONÁRIAS POR CIDADE ==================
 const funcionariosPorCidade = {
     "Ikeda": ["Franciele", "Andressa", "Nicole"],
     "Dracena": ["Suelen", "Nicolie", "Carmem"],
@@ -50,7 +50,7 @@ function converterValor(valor) {
     return isNaN(n) ? 0 : n;
 }
 
-// ================== LOGIN (CORRIGIDO) ==================
+// ================== LOGIN ==================
 window.entrar = function () {
     const user = document.getElementById("usuario").value;
     const senha = document.getElementById("senha").value;
@@ -127,21 +127,10 @@ function lerPlanilha() {
             let texto = linha[0].toString().trim();
             if (!texto || texto.toUpperCase().includes("TOTAL")) continue;
 
-            texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
-            let partes = texto.split(" ");
-
-            if (partes.length < 3) continue;
-
-            let dia = partes[0].padStart(2, "0");
-            let mes = partes[1];
-            let ano = partes[2];
-
-            let dataStr = `${dia} ${mes} ${ano}`;
-
             let valor = converterValor(linha[1]);
-
-            vendasPorDia[dataStr] = valor;
             totalAcumulado += valor;
+
+            vendasPorDia[i] = valor;
         }
 
         document.getElementById("anoPassado").value = totalAcumulado.toFixed(2);
@@ -151,7 +140,7 @@ function lerPlanilha() {
     reader.readAsArrayBuffer(file);
 }
 
-// ================== CALENDÁRIO ==================
+// ================== META ==================
 function calcularMeta() {
     let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
     let percentual = parseFloat(document.getElementById("percentual").value || 0);
@@ -193,6 +182,8 @@ function gerarCalendario() {
         </tr>
     `;
 
+    const fragment = document.createDocumentFragment();
+
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
 
@@ -201,21 +192,24 @@ function gerarCalendario() {
 
             tr.innerHTML = `
                 <td>${String(i).padStart(2, "0")}/${mes + 1}/${ano}</td>
-                <td>${data.getDay()}</td>
+                <td>${data.getDate()}</td>
                 <td class="func">${nome}</td>
                 <td><input type="checkbox" checked onchange="recalcularMetas()"></td>
                 <td class="meta-individual">R$ 0,00</td>
                 <td class="meta-total-dia">R$ 0,00</td>
             `;
 
-            tabela.appendChild(tr);
+            fragment.appendChild(tr);
         });
     }
 
+    tabela.appendChild(fragment);
     container.appendChild(tabela);
+
+    recalcularMetas();
 }
 
-// ================== RECALCULAR (CORRIGIDO) ==================
+// ================== RECALCULAR METAS ==================
 function recalcularMetas() {
     let linhas = document.querySelectorAll("#dias tr");
 
@@ -232,27 +226,24 @@ function recalcularMetas() {
 
     Object.values(dadosPorData).forEach(linhasDoDia => {
 
-        let metaLoja = 100;
-
         let ativas = linhasDoDia.filter(l =>
             l.querySelector("input")?.checked
         );
 
-        let qtd = ativas.length || 1;
+        let qtd = ativas.length;
 
         linhasDoDia.forEach(linha => {
             let cb = linha.querySelector("input");
             let cell = linha.querySelector(".meta-individual");
 
-            if (cb?.checked) {
-                cell.innerText = formatarReal(metaLoja / qtd);
+            if (cb?.checked && qtd > 0) {
+                cell.innerText = formatarReal(100 / qtd);
             } else {
                 cell.innerText = formatarReal(0);
             }
         });
     });
 }
-
 // ================== EXPORTAÇÃO PDF ==================
 function exportarPDF() {
     const tabela = document.querySelector("#dias table");
