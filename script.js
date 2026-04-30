@@ -55,10 +55,7 @@ function converterValor(valor) {
 window.addEventListener("load", () => {
     const hoje = new Date();
 
-    document.getElementById("mesSelecionado").value = hoje.getMonth();
-    document.getElementById("anoSelecionado").value = hoje.getFullYear();
-
-    const cidade = document.getElementById("cidade");
+      const cidade = document.getElementById("cidade");
     cidade?.addEventListener("change", (e) => {
         carregarFuncionarias(e.target.value);
     });
