@@ -439,25 +439,4 @@ function exportarExcel() {
         `Metas_${nomeCidade}_${nomeFunc}.xlsx`
     );
 }
-// ========= Senha =======
-// ======= USUÁRIOS =======
-const usuarios = [
-    { usuario: "Admin", senha: "4321" },
-    { usuario: "Luana", senha: "2560" },
-    { usuario: "Teste", senha: "0000" }
-];
 
-// ========= LOGIN =========
-function entrar() {
-    const user = document.getElementById("usuario").value;
-    const senha = document.getElementById("senha").value;
-
-    const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
-
-    if (valido) {
-        document.getElementById("loginScreen").style.display = "none";
-        document.getElementById("app").style.display = "block";
-    } else {
-        document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
-    }
-}
