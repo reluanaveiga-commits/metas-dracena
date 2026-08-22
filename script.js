@@ -2,6 +2,7 @@
 let funcionarias = [];
 let vendasPorDia = {};
 let percentualGlobal = 0;
+let pesosFuncionarias = {}; // nome -> % da meta que essa funcionária recebe
 
 const meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -53,9 +54,7 @@ function converterValor(valor) {
 
 // ================== CIDADE E CARREGAMENTO ==================
 window.addEventListener("load", () => {
-    const hoje = new Date();
-
-      const cidade = document.getElementById("cidade");
+    const cidade = document.getElementById("cidade");
     cidade?.addEventListener("change", (e) => {
         carregarFuncionarias(e.target.value);
     });
@@ -72,25 +71,135 @@ function carregarFuncionarias(cidade) {
         return;
     }
 
-    lista.forEach(nome => {
-        const div = document.createElement("div");
-        div.classList.add("funcionario");
-        div.innerHTML = `
-            <input type="text" value="${nome}">
-            <button onclick="this.parentElement.remove(); pegarFuncionarias();">Remover</button>
-        `;
-        container.appendChild(div);
+    const pesos = pesosIguaisArray(lista.length);
+
+    lista.forEach((nome, i) => {
+        container.appendChild(criarLinhaFuncionaria(nome, pesos[i]));
     });
     pegarFuncionarias();
 }
 
+// Gera N percentuais iguais que somam exatamente 100 (o último absorve o resto do arredondamento)
+function pesosIguaisArray(n) {
+    if (n <= 0) return [];
+    const base = Math.floor((100 / n) * 10) / 10;
+    const pesos = new Array(n).fill(base);
+    pesos[n - 1] = +(100 - base * (n - 1)).toFixed(1);
+    return pesos;
+}
+
+function criarLinhaFuncionaria(nome, peso) {
+    const div = document.createElement("div");
+    div.classList.add("funcionario");
+    div.innerHTML = `
+        <div class="funcionario-topo">
+            <input type="text" class="nome-funcionaria" value="${nome}" placeholder="Nome da funcionária">
+            <button onclick="this.closest('.funcionario').remove(); redistribuirAposRemocao(); pegarFuncionarias(); recalcularMetas();">
+                <svg class="icon"><use href="#icon-lixeira"></use></svg>
+            </button>
+        </div>
+        <label class="funcionario-peso">
+            <span>% da meta</span>
+            <input type="number" class="percentual-funcionaria" value="${peso}" min="0" max="100" step="0.1"
+                oninput="redistribuirPercentuais(this); pegarFuncionarias(); recalcularMetas();">
+        </label>
+    `;
+    return div;
+}
+
+function adicionarFuncionaria() {
+    const container = document.getElementById("listaFuncionarias");
+    if (!container) return;
+
+    const div = criarLinhaFuncionaria("", "0");
+    container.appendChild(div);
+
+    const qtdAtual = container.querySelectorAll(".funcionario").length;
+    const inputPeso = div.querySelector(".percentual-funcionaria");
+    inputPeso.value = (100 / qtdAtual).toFixed(1);
+    redistribuirPercentuais(inputPeso);
+
+    div.querySelector(".nome-funcionaria").focus();
+    pegarFuncionarias();
+}
+
+// Ao mudar o % de uma funcionária, redistribui a diferença entre as demais
+// (mantendo a proporção relativa entre elas), pra soma total ficar sempre em 100%.
+function redistribuirPercentuais(inputAlterado) {
+    const linhas = Array.from(document.querySelectorAll("#listaFuncionarias .funcionario"));
+    const inputs = linhas.map(l => l.querySelector(".percentual-funcionaria")).filter(Boolean);
+
+    if (inputs.length <= 1) {
+        if (inputs[0]) inputs[0].value = "100";
+        atualizarTotalPercentual();
+        return;
+    }
+
+    let novoValor = parseFloat(inputAlterado.value);
+    if (isNaN(novoValor)) novoValor = 0;
+    novoValor = Math.max(0, Math.min(100, novoValor));
+    inputAlterado.value = novoValor;
+
+    // A diferença é sempre dividida IGUALMENTE entre as demais (não proporcional ao valor anterior delas)
+    const outros = inputs.filter(inp => inp !== inputAlterado);
+    const parteIgual = Math.floor(((100 - novoValor) / outros.length) * 10) / 10;
+
+    outros.forEach((inp, i) => {
+        // A última absorve a diferença de arredondamento pra soma ficar exatamente 100
+        const ehUltima = i === outros.length - 1;
+        const novaParte = ehUltima
+            ? +(100 - novoValor - parteIgual * (outros.length - 1)).toFixed(1)
+            : parteIgual;
+        inp.value = novaParte;
+    });
+
+    atualizarTotalPercentual();
+}
+
+// Chamado ao remover uma funcionária: volta as % restantes para uma divisão igual entre elas
+function redistribuirAposRemocao() {
+    const inputs = Array.from(document.querySelectorAll("#listaFuncionarias .percentual-funcionaria"));
+    if (inputs.length === 0) return;
+
+    const pesos = pesosIguaisArray(inputs.length);
+    inputs.forEach((inp, i) => inp.value = pesos[i]);
+    atualizarTotalPercentual();
+}
+
+// Botão "Redefinir %": volta todas as funcionárias para a divisão igual, como no início
+function resetarPercentuais() {
+    const inputs = Array.from(document.querySelectorAll("#listaFuncionarias .percentual-funcionaria"));
+    if (inputs.length === 0) return;
+
+    const pesos = pesosIguaisArray(inputs.length);
+    inputs.forEach((inp, i) => inp.value = pesos[i]);
+
+    pegarFuncionarias();
+    recalcularMetas();
+}
+
+function atualizarTotalPercentual() {
+    const el = document.getElementById("totalPercentual");
+    if (!el) return;
+    const inputs = document.querySelectorAll("#listaFuncionarias .percentual-funcionaria");
+    if (inputs.length === 0) { el.textContent = ""; return; }
+    const soma = Array.from(inputs).reduce((acc, inp) => acc + (parseFloat(inp.value) || 0), 0);
+    el.textContent = `Total distribuído: ${soma.toFixed(1)}%`;
+}
+
 function pegarFuncionarias() {
-    let inputs = document.querySelectorAll("#listaFuncionarias input");
+    let linhas = document.querySelectorAll("#listaFuncionarias .funcionario");
     funcionarias = [];
-    inputs.forEach(i => {
-        if (i.value.trim()) funcionarias.push(i.value.trim());
+    pesosFuncionarias = {};
+    linhas.forEach(linha => {
+        let nome = linha.querySelector(".nome-funcionaria")?.value.trim();
+        if (!nome) return;
+        funcionarias.push(nome);
+        let peso = parseFloat(linha.querySelector(".percentual-funcionaria")?.value);
+        pesosFuncionarias[nome] = isNaN(peso) || peso < 0 ? 0 : peso;
     });
     atualizarFiltro();
+    atualizarTotalPercentual();
 }
 
 function atualizarFiltro() {
@@ -106,7 +215,36 @@ function atualizarFiltro() {
 }
 
 // ================== PLANILHA ==================
-// ================== PLANILHA (CORRIGIDA) ==================
+// Converte a célula de data (texto ou número serial do Excel) para a chave canônica DD/MM/AAAA
+function normalizarDataChave(valorCelula) {
+    if (valorCelula === null || valorCelula === undefined) return null;
+
+    if (typeof valorCelula === "number") {
+        const info = XLSX.SSF?.parse_date_code(valorCelula);
+        if (!info) return null;
+        return `${String(info.d).padStart(2, "0")}/${String(info.m).padStart(2, "0")}/${info.y}`;
+    }
+
+    const texto = valorCelula.toString().trim();
+
+    let m = texto.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[3]}`;
+
+    m = texto.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) return `${m[3].padStart(2, "0")}/${m[2].padStart(2, "0")}/${m[1]}`;
+
+    // Formato "DD <mês em texto> AAAA" — aceita variações como "02 Ago 2026",
+    // "02 ago. 2026", "02 de Agosto de 2026", com ou sem ponto/acento.
+    m = texto.match(/^(\d{1,2})\D+(\d{4})$/);
+    if (m) {
+        const textoLower = texto.toLowerCase();
+        const idxMes = meses.findIndex(mesAbrev => textoLower.includes(mesAbrev.toLowerCase()));
+        if (idxMes >= 0) return `${m[1].padStart(2, "0")}/${String(idxMes + 1).padStart(2, "0")}/${m[2]}`;
+    }
+
+    return null;
+}
+
 function lerPlanilha() {
     const file = document.getElementById("inputExcel").files[0];
     if (!file) return alert("Selecione a planilha!");
@@ -124,59 +262,48 @@ function lerPlanilha() {
 
         vendasPorDia = {};
         let totalAcumulado = 0;
+        let linhasIgnoradas = 0;
 
         for (let i = 1; i < linhas.length; i++) {
             let linha = linhas[i];
-            
-            // --- NOVA VERIFICAÇÃO AQUI ---
+
             if (!linha || !linha[0]) continue; // Pula linha vazia
-            
-         let texto = linha[0]?.toString()?.trim();
 
-if (!texto) continue;
+            let dataStr = linha[0].toString().trim();
 
-if (texto.toUpperCase().includes("TOTAL")) continue;
-
-// remove barras e padroniza tudo
-texto = texto.replace(/\//g, " ").replace(/\s+/g, " ").trim();
-
-let partes = texto.split(" ");
-
-let dia = partes[0];
-let mes = partes[1];
-let ano = partes[2];
-
-// proteção contra dados quebrados
-if (!dia || !mes || !ano) continue;
-
-dia = dia.padStart(2, "0");
-
-// normaliza mês
-mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
-
-let dataStr = `${dia} ${mes} ${ano}`;
             // Se a célula contiver a palavra "TOTAL" (em maiúsculo ou minúsculo), ignora a linha
             if (dataStr.toUpperCase().includes("TOTAL")) {
                 console.log("Linha de total ignorada na importação");
-                continue; 
+                continue;
             }
-            // -----------------------------
+
+            let chave = normalizarDataChave(linha[0]);
+            if (!chave) {
+                linhasIgnoradas++;
+                console.warn("Data não reconhecida na linha, ignorada:", dataStr);
+                continue;
+            }
 
             let valor = converterValor(linha[1]);
-            vendasPorDia[dataStr] = valor;
+            vendasPorDia[chave] = valor;
             totalAcumulado += valor;
         }
-        
+
         // Atualiza o campo de valor do ano passado apenas com a soma dos dias reais
-        document.getElementById("anoPassado").value = totalAcumulado.toFixed(2);
-        alert("Planilha carregada com sucesso!");
+        document.getElementById("anoPassado").value = formatarReal(totalAcumulado);
+
+        if (linhasIgnoradas > 0) {
+            alert(`Planilha carregada, mas ${linhasIgnoradas} linha(s) com data em formato não reconhecido foram ignoradas.`);
+        } else {
+            alert("Planilha carregada com sucesso!");
+        }
     };
     reader.readAsArrayBuffer(file);
 }
 
 // ================== CÁLCULOS E CALENDÁRIO ==================
 function calcularMeta() {
-    let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
+    let anoPassado = converterValor(document.getElementById("anoPassado").value);
     let percentual = parseFloat(document.getElementById("percentual").value || 0);
     percentualGlobal = percentual;
 
@@ -190,69 +317,58 @@ function gerarCalendario() {
     let container = document.getElementById("dias");
     container.innerHTML = "";
 
-    let mes = parseInt(document.getElementById("mesSelecionado").value);
-    let ano = parseInt(document.getElementById("anoSelecionado").value);
+    let hoje = new Date();
+    let ano = hoje.getFullYear();
+    let mes = hoje.getMonth();
     let diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
     let abrirDomingo = document.getElementById("abrirDomingo")?.checked;
     let abrirFeriado = document.getElementById("trabalharFeriado")?.checked;
 
-    let anoPassado = parseFloat(document.getElementById("anoPassado").value || 0);
+    // 1. CALCULAR META TOTAL ALVO
+    let anoPassado = converterValor(document.getElementById("anoPassado").value);
     let metaMensalTotalAlvo = anoPassado * (1 + percentualGlobal / 100);
+    
+    // Calculamos uma média diária simples para preencher buracos (dias úteis sem valor no Excel)
+    let mediaDiariaBase = metaMensalTotalAlvo / 25; // Estimativa de 25 dias úteis
 
-    // 🔥 MÉDIA REAL (para dias zerados)
-    let valoresValidos = Object.values(vendasPorDia).filter(v => v > 0);
-    let mediaReal = valoresValidos.length > 0
-        ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length
-        : 0;
+    // 2. MAPEAMENTO INICIAL E SOMA DA META DISPONÍVEL
+    let somaMetaPlanejadaDiasUteis = 0;
+    let metasDiariasIniciais = {};
 
-    let somaDiasAtivos = 0;
-    let metasBase = {};
-
-    // ================= LOOP PRINCIPAL =================
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
-       let mesNome = meses[mes].charAt(0).toUpperCase() + meses[mes].slice(1).toLowerCase();
-let anoBase = ano - 1; // 🔥 pega ano passado
-let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
+        let chaveDia = `${String(i).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
 
         let isDomingo = data.getDay() === 0;
         let ehFeriado = isFeriado(data);
-
         let vaiTrabalhar = true;
         if (isDomingo && !abrirDomingo) vaiTrabalhar = false;
         if (ehFeriado && !abrirFeriado) vaiTrabalhar = false;
 
-        let valorPlanilha = converterValor(vendasPorDia[dataPlanilha]);
-
-        let valorBase;
-
-        // 🔥 REGRA PRINCIPAL
-        if (valorPlanilha > 0) {
-            valorBase = valorPlanilha * (1 + percentualGlobal / 100);
-        } else {
-            // Se ano passado foi zero → usa média
-            valorBase = mediaReal * (1 + percentualGlobal / 100);
-        }
-
+        let valorPlanilha = converterValor(vendasPorDia[chaveDia]);
+        let valorBase = valorPlanilha * (1 + percentualGlobal / 100);
+        
         if (vaiTrabalhar) {
-            metasBase[i] = valorBase;
-            somaDiasAtivos += valorBase;
+            // SE O DIA É ÚTIL MAS ESTÁ EM BRANCO/ZERO, ATRIBUI A MÉDIA BASE
+            if (valorBase <= 0) {
+                valorBase = mediaDiariaBase;
+            }
+            metasDiariasIniciais[i] = valorBase;
+            somaMetaPlanejadaDiasUteis += valorBase;
         } else {
-            metasBase[i] = 0;
+            metasDiariasIniciais[i] = 0;
         }
     }
 
-    // 🔥 FATOR DE AJUSTE (redistribuição proporcional)
-    let fatorAjuste = somaDiasAtivos > 0
-        ? (metaMensalTotalAlvo / somaDiasAtivos)
-        : 0;
+    // 3. CÁLCULO DO FATOR DE AJUSTE FINAL
+    // Esse fator vai "encolher" ou "esticar" as metas para que a soma dê exatamente o valor alvo
+    let fatorAjuste = somaMetaPlanejadaDiasUteis > 0 ? (metaMensalTotalAlvo / somaMetaPlanejadaDiasUteis) : 0;
 
-    // ================= TABELA =================
+    // 4. GERAÇÃO DA TABELA
     let tabela = document.createElement("table");
     tabela.style.width = "100%";
     tabela.border = "1";
-
     tabela.innerHTML = `
         <tr>
             <th>Data</th>
@@ -268,39 +384,40 @@ let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
     let totalSemanaLoja = 0, totalSemanaIndiv = 0;
     let totalMesLoja = 0, totalMesIndiv = 0;
 
+    // Soma dos pesos (%) de todas as funcionárias. Se ninguém tiver peso definido,
+    // cai de volta para divisão igual entre todas.
+    let somaPesos = funcionarias.reduce((acc, nome) => acc + (pesosFuncionarias[nome] || 0), 0);
+    if (somaPesos <= 0 && funcionarias.length > 0) {
+        funcionarias.forEach(nome => { pesosFuncionarias[nome] = 1; });
+        somaPesos = funcionarias.length;
+    }
+
     for (let i = 1; i <= diasNoMes; i++) {
         let data = new Date(ano, mes, i);
         let semana = getSemanaAno(data);
 
-        let valorMetaLojaFinal = metasBase[i] * fatorAjuste;
-
-        let metaIndividual = (funcionarias.length > 0 && valorMetaLojaFinal > 0)
-            ? (valorMetaLojaFinal / funcionarias.length)
-            : 0;
+        let valorMetaLojaFinal = metasDiariasIniciais[i] * fatorAjuste;
 
         if (semanaAtual !== null && semana !== semanaAtual) {
             tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-            totalSemanaLoja = 0;
-            totalSemanaIndiv = 0;
+            totalSemanaLoja = 0; totalSemanaIndiv = 0;
         }
 
         semanaAtual = semana;
-
         totalSemanaLoja += valorMetaLojaFinal;
-        totalSemanaIndiv += (metaIndividual * funcionarias.length);
         totalMesLoja += valorMetaLojaFinal;
-        totalMesIndiv += (metaIndividual * funcionarias.length);
 
         let dataTexto = `${String(i).padStart(2, "0")}/${String(mes + 1).padStart(2, "0")}/${ano}`;
-        let diaSemanaStr = data.getDay() === 0
-            ? "DOMINGO"
-            : isFeriado(data)
-                ? "FERIADO"
-                : data.toLocaleDateString("pt-BR", { weekday: "long" });
+        let diaSemanaStr = data.getDay() === 0 ? "DOMINGO" : isFeriado(data) ? "FERIADO" : data.toLocaleDateString("pt-BR", { weekday: "long" });
 
         funcionarias.forEach(nome => {
-            let tr = document.createElement("tr");
+            let peso = pesosFuncionarias[nome] || 0;
+            let metaIndividual = (valorMetaLojaFinal > 0 && somaPesos > 0) ? (valorMetaLojaFinal * (peso / somaPesos)) : 0;
 
+            totalSemanaIndiv += metaIndividual;
+            totalMesIndiv += metaIndividual;
+
+            let tr = document.createElement("tr");
             if (valorMetaLojaFinal === 0) tr.style.background = "#fff3f3";
 
             tr.innerHTML = `
@@ -311,31 +428,27 @@ let dataPlanilha = `${String(i).padStart(2, "0")} ${mesNome} ${anoBase}`;
                 <td class="meta-individual">${formatarReal(metaIndividual)}</td>
                 <td class="meta-total-dia">${formatarReal(valorMetaLojaFinal)}</td>
             `;
-
             tabela.appendChild(tr);
         });
 
         if (i === diasNoMes) {
             tabela.appendChild(criarLinhaSemana(totalSemanaIndiv, totalSemanaLoja));
-
             let linhaMes = document.createElement("tr");
             linhaMes.classList.add("linha-total-mensal");
             linhaMes.style.background = "#2c3e50";
             linhaMes.style.color = "white";
             linhaMes.style.fontWeight = "bold";
-
             linhaMes.innerHTML = `
-                <td colspan="4" style="text-align: right;">TOTAL DO MÊS:</td>
+                <td colspan="4" style="text-align: right; padding-right: 10px;">TOTAL DO MÊS:</td>
                 <td id="total-mes-individual">${formatarReal(totalMesIndiv)}</td>
                 <td id="total-mes-loja">${formatarReal(totalMesLoja)}</td>
             `;
-
             tabela.appendChild(linhaMes);
         }
     }
-
     container.appendChild(tabela);
 }
+
 function criarLinhaSemana(totalIndiv, totalLoja) {
     let tr = document.createElement("tr");
     tr.classList.add("linha-total-semanal");
@@ -400,13 +513,23 @@ function recalcularMetas() {
         // Contamos quantas funcionárias estão "Ativas" (checkbox marcado)
         let funcionariasAtivas = linhasDoDia.filter(l => l.querySelector("input[type='checkbox']").checked);
 
+        // Soma os pesos (%) apenas das que estão ativas nesse dia
+        let somaPesosAtivas = funcionariasAtivas.reduce((acc, l) => {
+            let nome = l.querySelector(".func")?.innerText;
+            return acc + (pesosFuncionarias[nome] || 0);
+        }, 0);
+
         linhasDoDia.forEach(linha => {
             let cb = linha.querySelector("input[type='checkbox']");
             let celulaIndividual = linha.querySelector(".meta-individual");
+            let nome = linha.querySelector(".func")?.innerText;
 
             if (cb.checked) {
-                // Se estiver ativa, recebe a meta da loja dividida pelo total de ativas
-                let novaMetaIndiv = metaLoja / funcionariasAtivas.length;
+                // Se estiver ativa, recebe a meta da loja proporcional ao seu % entre as ativas
+                let peso = pesosFuncionarias[nome] || 0;
+                let novaMetaIndiv = somaPesosAtivas > 0
+                    ? metaLoja * (peso / somaPesosAtivas)
+                    : metaLoja / funcionariasAtivas.length;
                 celulaIndividual.innerText = formatarReal(novaMetaIndiv);
             } else {
                 // Se estiver de folga (desativada), a meta individual é 0
@@ -656,23 +779,40 @@ function exportarExcel() {
 }
 // ========= Senha =======
 // ======= USUÁRIOS =======
+// As senhas não ficam em texto puro no código: é guardado o hash SHA-256 de "usuario:senha".
 const usuarios = [
-    { usuario: "Admin", senha: "4321" },
-    { usuario: "Luana", senha: "2560" },
-    { usuario: "Teste", senha: "0000" }
+    { usuario: "Admin", hash: "bc0a9e9db86da5bd28a5296bbd9f65193ba466a1313635422ae610982af8b87f" },
+    { usuario: "Luana", hash: "0ef84e0e15430dee47d85f7d6431a622881e8ac27808f1278d7fe7b134fc64e1" },
+    { usuario: "Teste", hash: "b624292294f04d3bf3ebc4c72b7e4ddf8077d0103af678845caa41a97b138c3b" }
 ];
 
+async function sha256(texto) {
+    const buffer = new TextEncoder().encode(texto);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 // ========= LOGIN =========
-function entrar() {
-    const user = document.getElementById("usuario").value;
+async function entrar() {
+    const user = document.getElementById("usuario").value.trim();
     const senha = document.getElementById("senha").value;
 
-    const valido = usuarios.find(u => u.usuario === user && u.senha === senha);
+    const hashDigitado = await sha256(`${user}:${senha}`);
+    const valido = usuarios.find(u => u.usuario === user && u.hash === hashDigitado);
 
     if (valido) {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("app").style.display = "block";
+        document.getElementById("erro").innerText = "";
     } else {
         document.getElementById("erro").innerText = "Usuário ou senha incorretos!";
     }
+}
+
+function sair() {
+    document.getElementById("app").style.display = "none";
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("usuario").value = "";
+    document.getElementById("senha").value = "";
+    document.getElementById("erro").innerText = "";
 }
