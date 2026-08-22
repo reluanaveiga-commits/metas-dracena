@@ -11,10 +11,17 @@
     --verde: #2ecc71;
     --verde-escuro: #27ae60;
     --verde-soft: #e9f9ef;
+    --verde-800: #1e8449;
 
     --cinza-bg: #f4f6f9;
     --cinza-card: #ffffff;
+    --cinza-borda: #e4e8ee;
     --texto: #2c3e50;
+    --texto-suave: #6b7789;
+
+    --sombra-card: 0 4px 14px rgba(31, 45, 61, 0.07);
+    --sombra-card-hover: 0 10px 24px rgba(31, 45, 61, 0.12);
+    --raio: 12px;
 }
 
 /* ================== BODY ================== */
@@ -23,12 +30,19 @@ body {
     color: var(--texto);
 }
 
-/* ================== HEADER (MENOR E MAIS MODERNO) ================== */
+/* ================== HEADER ================== */
 .topo {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     background: linear-gradient(135deg, var(--verde), var(--verde-escuro));
     color: white;
-    padding: 8px 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 10px 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
 }
 
 .brand {
@@ -38,9 +52,11 @@ body {
 }
 
 .logo {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 8px;
+    background: white;
+    padding: 2px;
 }
 
 .brand h1 {
@@ -51,74 +67,132 @@ body {
 
 .brand span {
     font-size: 11px;
-    opacity: 0.85;
+    opacity: 0.9;
+}
+
+.btn-sair {
+    width: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.btn-sair:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: none;
 }
 
 /* ================== CONTAINER ================== */
 .container {
     padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 /* ================== GRID ================== */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 15px;
+    gap: 16px;
 }
 
 /* ================== CARD ================== */
 .card {
     background: var(--cinza-card);
-    padding: 18px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    padding: 20px;
+    border-radius: var(--raio);
+    border: 1px solid var(--cinza-borda);
+    box-shadow: var(--sombra-card);
     transition: 0.2s;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--sombra-card-hover);
 }
 
 .card h3 {
-    margin-bottom: 10px;
-    color: var(--verde-escuro);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: var(--verde-800);
+    font-size: 15px;
+}
+
+.card label {
+    display: block;
+    font-size: 13px;
+    color: var(--texto-suave);
+    margin-bottom: 2px;
+}
+
+/* ================== ÍCONES ================== */
+.icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.icon-inline {
+    width: 14px;
+    height: 14px;
+    vertical-align: -2px;
 }
 
 /* ================== INPUTS ================== */
 input,
 select {
     width: 100%;
-    padding: 10px;
+    padding: 10px 12px;
     margin: 6px 0 12px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--cinza-borda);
     border-radius: 8px;
     outline: none;
     transition: 0.2s;
+    font-size: 14px;
+    color: var(--texto);
 }
 
 input:focus,
 select:focus {
     border-color: var(--verde);
-    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.15);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+}
+
+input[type="file"] {
+    padding: 8px;
+    cursor: pointer;
 }
 
 /* ================== BOTÕES GERAL ================== */
 button {
     width: 100%;
-    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
     background: var(--verde);
     color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
     transition: 0.2s;
 }
 
 button:hover {
     background: var(--verde-escuro);
     transform: scale(1.02);
+}
+
+button:active {
+    transform: scale(0.98);
 }
 
 /* ================== BOTÕES EM GRUPO ================== */
@@ -133,20 +207,77 @@ button:hover {
     width: auto;
 }
 
+.btn-secundario {
+    background: #f1f3f6;
+    color: var(--texto);
+}
+
+.btn-secundario:hover {
+    background: #e4e8ee;
+}
+
 /* ================== FUNCIONÁRIAS ================== */
 .funcionario {
     display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--cinza-borda);
+}
+
+.funcionario:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.funcionario-topo {
+    display: flex;
     gap: 8px;
-    margin-bottom: 8px;
 }
 
-.funcionario input {
+.funcionario-topo input {
     flex: 1;
+    margin: 0;
 }
 
-.funcionario button {
+.funcionario-topo button {
     width: auto;
     padding: 8px 10px;
+    background: #f1f3f6;
+    color: #c0392b;
+}
+
+.funcionario-topo button:hover {
+    background: #fbe1de;
+}
+
+.funcionario-peso {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--texto-suave);
+    padding-left: 2px;
+}
+
+.funcionario-peso input {
+    width: 70px;
+    margin: 0;
+    padding: 6px 8px;
+    text-align: right;
+    font-size: 13px;
+    color: var(--texto);
+}
+
+.total-percentual {
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--verde-800);
+    margin: 6px 0 10px;
 }
 
 /* ================== CHECKBOX ================== */
@@ -155,6 +286,13 @@ button:hover {
     align-items: center;
     gap: 8px;
     margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--texto);
+}
+
+.check input {
+    width: auto;
+    margin: 0;
 }
 
 /* ================== TABELA ================== */
@@ -171,28 +309,20 @@ table {
 th {
     background: var(--verde-escuro);
     color: white;
-    padding: 8px;
+    padding: 10px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 td {
     border-bottom: 1px solid #eee;
-    padding: 6px;
+    padding: 7px 6px;
     text-align: center;
 }
 
 tr:hover td {
     background: var(--verde-soft);
-}
-
-/* ================== EXPORT CARD ================== */
-.small {
-    max-width: 320px;
-    justify-self: end;
-    padding: 20px;
-}
-
-.small h3 {
-    margin-bottom: 12px;
 }
 
 /* ================== FULL WIDTH ================== */
@@ -202,10 +332,13 @@ tr:hover td {
 
 /* ================== SCROLL TABELA ================== */
 #dias {
-    overflow-x: auto;
+    overflow: auto;
     background: white !important;
     min-height: 100px;
+    max-height: 70vh;
     display: block !important;
+    border-radius: 10px;
+    border: 1px solid var(--cinza-borda);
 }
 
 #dias table {
@@ -230,81 +363,124 @@ tr:hover td {
     padding: 8px;
 }
 
+#dias th {
+    color: white !important;
+}
+
+/* ================== BARRA FLUTUANTE DE EXPORTAÇÃO ================== */
+.fab-export {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 30;
+}
+
+.fab-export button {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    padding: 0;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+.fab-export .icon {
+    width: 22px;
+    height: 22px;
+}
+
 /* ================== LOGIN ================== */
-/* ================== FUNDO DA TELA ================== */
 .login {
     position: fixed;
     inset: 0;
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    background: linear-gradient(135deg, var(--verde), var(--verde-800));
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 20px;
 }
 
-/* ================== CARD DE LOGIN ================== */
-/* ================== FUNDO ================== */
-.login {
-    position: fixed;
-    inset: 0;
-    background: #f4f6f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ================== QUADRO CENTRAL ================== */
 .login-box {
-    width: 320px;
+    width: 340px;
     background: white;
-    padding: 25px;
-    border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}
-
-/* TÍTULO */
-.login-box h2 {
+    padding: 32px 28px;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
     text-align: center;
-    margin-bottom: 18px;
-    color: #27ae60;
+}
+
+.login-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.login-box h2 {
+    color: var(--verde-800);
     font-size: 20px;
+    margin-bottom: 4px;
 }
 
-/* INPUTS */
-.login-box input {
-    width: 100%;
-    padding: 10px;
+.login-sub {
+    font-size: 13px;
+    color: var(--texto-suave);
+    margin-bottom: 18px;
+}
+
+.campo-icone {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 8px;
+    padding: 0 10px;
     margin: 8px 0;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    outline: none;
+    text-align: left;
+    color: var(--texto-suave);
 }
 
-/* BOTÃO */
-.login-box button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    background: #2ecc71;
+.campo-icone:focus-within {
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.15);
+}
+
+.campo-icone input {
     border: none;
-    border-radius: 8px;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
+    margin: 0;
+    padding: 10px 0;
+    box-shadow: none !important;
+}
+
+.login-box button {
+    margin-top: 8px;
+    background: var(--verde);
 }
 
 .login-box button:hover {
-    background: #27ae60;
+    background: var(--verde-escuro);
 }
 
 /* ERRO */
 #erro {
-    margin-top: 10px;
+    margin-top: 12px;
     font-size: 13px;
-    color: red;
+    color: #c0392b;
     text-align: center;
+    min-height: 16px;
 }
 
 /* ================== APP ================== */
 #app {
     display: none;
+}
+
+/* ================== RESPONSIVO ================== */
+@media (max-width: 640px) {
+    .fab-export button {
+        width: 46px;
+        height: 46px;
+    }
 }
