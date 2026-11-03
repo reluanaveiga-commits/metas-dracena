@@ -20,10 +20,10 @@ function isFeriado(data) {
 
 // ================== FUNCIONÁRIAS POR CIDADE ==================
 const funcionariosPorCidade = {
-   "Ikeda": ["Franciele", "Andressa", "Nicole"],
-    "Dracena": ["Suelen", "Nicolie", "Carmem"],
-    "Junqueirópolis": ["Giovana", "Stefany", "Mariana"],
-    "Tupi Paulista": ["Mariana", "Bruna", "Jheniffer"],
+   "Ikeda": ["Franciele", "Debora", "Estela"],
+    "Dracena": ["Suelen", "Nicolie", "Andressa"],
+    "Junqueirópolis": ["Giovana", "Stefany"],
+    "Tupi Paulista": ["Mariana", "Bruna"],
     "Panorama": ["Camila", "Jaqueline"],
     "Paulicéia": ["Mariele", "Myllena"]
             
